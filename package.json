@@ -1,0 +1,11 @@
+{
+  "name": "agent-village-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node backend/server.mjs",
+    "demo": "node backend/demo.mjs",
+    "test": "node --test"
+  }
+}
