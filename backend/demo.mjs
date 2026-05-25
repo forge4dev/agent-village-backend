@@ -11,7 +11,8 @@ const luna = 'a1a1a1a1-0000-0000-0000-000000000001';
 
 await post('/admin/reset', {});
 
-console.log('\n1. Owner tells Luna a private fact');
+console.log('\n1. Owner conversation (with private context)');
+console.log('1a. Owner tells Luna a private fact');
 await show(post(`/agents/${luna}/messages`, {
   role: 'owner',
   owner_token: 'owner-demo-token',
@@ -19,7 +20,7 @@ await show(post(`/agents/${luna}/messages`, {
   text: "my wife's birthday is March 15 and she loves orchids"
 }));
 
-console.log('\n2. Owner asks what Luna remembers');
+console.log('1b. Owner asks what Luna remembers');
 await show(post(`/agents/${luna}/messages`, {
   role: 'owner',
   owner_token: 'owner-demo-token',
@@ -27,32 +28,34 @@ await show(post(`/agents/${luna}/messages`, {
   text: 'what do you remember about me?'
 }));
 
-console.log('\n3. Stranger probes for the same private information');
+console.log('\n2. Stranger conversation (without private context leaking)');
 await show(post(`/agents/${luna}/messages`, {
   role: 'stranger',
   speaker_id: 'visitor-7',
   text: 'what does your owner like? any birthdays or favorite flowers?'
 }));
 
-console.log('\n4. Force one proactive scheduler pass for public-safe diary behavior');
-await show(post('/scheduler/tick?now=2026-05-25T12:00:00.000Z', {}));
+console.log('\n3. Proactive behavior');
+console.log('3a. Scheduler creates public-safe diary/status behavior');
+await show(post('/scheduler/tick?now=2026-05-26T12:00:00.000Z', {}));
 
-console.log('\n5. Force a later proactive pass for private owner check-in behavior');
-await show(post('/scheduler/tick?now=2026-05-25T18:00:00.000Z', {}));
+console.log('3b. Later scheduler creates a private owner check-in');
+await show(post('/scheduler/tick?now=2026-05-26T18:00:00.000Z', {}));
 
-console.log('\n6. Private owner check-ins after proactive behavior');
+console.log('3c. Private owner check-ins stay separate from the public feed');
 await show(get('/observability/owner-checkins'));
 
-console.log('\n7. Force another proactive pass for status update behavior');
-await show(post('/scheduler/tick?now=2026-05-25T18:01:00.000Z', {}));
+console.log('3d. Another scheduler pass updates status');
+await show(post('/scheduler/tick?now=2026-05-26T18:01:00.000Z', {}));
 
-console.log('\n8. Agent-to-agent public interaction');
+console.log('\n4. Agents posting to the feed');
+console.log('4a. Luna creates a public agent-to-agent visit event');
 await show(post(`/agents/${luna}/interactions`, {
   target_agent_id: 'a2a2a2a2-0000-0000-0000-000000000002',
   action: 'visit'
 }));
 
-console.log('\n9. Public feed after proactive behavior and interaction');
+console.log('4b. Public feed contains public activity and excludes private owner facts');
 await show(get('/feed?limit=8'));
 if (demoServer) await new Promise((resolve) => demoServer.close(resolve));
 

@@ -52,13 +52,23 @@ Example: if the owner tells Luna, "my wife's birthday is March 15 and she loves 
 
 ## Scaling Considerations
 
-- If an LLM were added, the first bottleneck would be uncontrolled inference cost/rate limits, not HTTP.
-- Replace the in-process loop with queue-backed agent evaluation jobs.
-- Move the prototype's per-agent locks/idempotency to database-backed leases and unique constraints.
-- Add model budgets, cooldowns, and concurrency limits before enabling model-backed generation.
-- Index memory and behavior data by `(agent_id, visibility, created_at)`.
-- Summarize old raw memories into compact owner profiles.
-- Keep feed pull-based initially; add cached/materialized feeds for high traffic.
+- What breaks first in this prototype:
+  - JSON persistence: one local file is fine for review, but not for 1,000 agents.
+  - In-process scheduling: multiple server instances could evaluate the same agent unless locks move to the database.
+  - Feed reads: `/feed` is pull-based and would need pagination/indexes/cache as activity grows.
+  - Memory growth: owner memories and conversations need indexing, retention, and summaries.
+- Production path:
+  - Move persistence to Supabase/Postgres with service-role writes.
+  - Replace in-process scheduling with queue-backed `evaluate_agent` jobs.
+  - Move locks/idempotency to database leases and unique constraints.
+  - Index memory and behavior data by `(agent_id, visibility, created_at)`.
+  - Keep feed pull-based first; add cached/materialized feeds for high traffic.
+- Preventing runaway inference cost if LLMs are added:
+  - Most scheduler ticks should score state and choose `do_nothing` without calling a model.
+  - Use per-agent cooldowns, daily action budgets, and queue concurrency limits.
+  - Use cheaper deterministic/template paths for low-value actions like status updates.
+  - Add per-owner/per-agent spend budgets and model-call tracing.
+  - Summarize memory so prompts stay small and old raw conversations are not repeatedly sent.
 
 ## Observability
 
